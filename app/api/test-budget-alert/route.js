@@ -64,9 +64,9 @@ export async function GET() {
         userName: budget.user.name,
         type: "budget-alert",
         data: {
-          percentageUsed: percentageUsed.toFixed(2),
-          budgetAmount: budgetAmount.toFixed(2),
-          totalExpenses: totalExpenses.toFixed(2),
+          percentageUsed: percentageUsed,
+          budgetAmount: budgetAmount,
+          totalExpenses: totalExpenses,
           accountName: defaultAccount.name,
         },
       }),
