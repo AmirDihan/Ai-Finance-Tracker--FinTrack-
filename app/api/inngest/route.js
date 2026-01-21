@@ -1,3 +1,4 @@
+import { serve } from "inngest/next";
 import { inngest } from "./client.js";
 import { db } from "@/lib/prisma";
 import EmailTemplate from "@/emails/template";
@@ -213,7 +214,7 @@ export const generateMonthlyReports = inngest.createFunction(
 // 3. Budget Alerts with Event Batching
 export const checkBudgetAlerts = inngest.createFunction(
   { name: "Check Budget Alerts" },
-  { cron: "0 */6 * * *" }, // Every 6 hours
+  { cron: "* * * * *" }, // Every 1 minute
   async ({ step }) => {
     const budgets = await step.run("fetch-budgets", async () => {
       return await db.budget.findMany({
@@ -255,35 +256,45 @@ export const checkBudgetAlerts = inngest.createFunction(
         });
 
         const totalExpenses = expenses._sum.amount?.toNumber() || 0;
-        const budgetAmount = budget.amount;
+        const budgetAmount = budget.amount.toNumber ? budget.amount.toNumber() : parseFloat(budget.amount);
         const percentageUsed = (totalExpenses / budgetAmount) * 100;
 
-        // Check if we should send an alert
-        if (
-          percentageUsed >= 80 && // Default threshold of 80%
-          (!budget.lastAlertSent ||
-            isNewMonth(new Date(budget.lastAlertSent), new Date()))
-        ) {
-          await sendEmail({
+        console.log(
+          `[Budget Alert] Budget: ${budget.id}, User: ${budget.userId}, Expenses: $${totalExpenses}, Budget: $${budgetAmount}, Used: ${percentageUsed.toFixed(2)}%`
+        );
+
+        // Check if we should send an alert - every 1 minute if threshold exceeded
+        if (percentageUsed >= 50) {
+          console.log(
+            `[Budget Alert] Threshold met (${percentageUsed.toFixed(2)}%), Sending alert email to ${budget.user.email}`
+          );
+
+          const emailResult = await sendEmail({
             to: budget.user.email,
-            subject: `Budget Alert for ${defaultAccount.name}`,
+            subject: `⚠️ Budget Alert: You've exceeded 50% of your budget for ${defaultAccount.name}`,
             react: EmailTemplate({
               userName: budget.user.name,
               type: "budget-alert",
               data: {
-                percentageUsed,
-                budgetAmount: parseInt(budgetAmount).toFixed(1),
-                totalExpenses: parseInt(totalExpenses).toFixed(1),
+                percentageUsed: percentageUsed.toFixed(2),
+                budgetAmount: budgetAmount.toFixed(2),
+                totalExpenses: totalExpenses.toFixed(2),
                 accountName: defaultAccount.name,
               },
             }),
           });
 
-          // Update last alert sent
+          console.log(`[Budget Alert] Email result:`, emailResult);
+
+          // Update last alert sent timestamp for reference
           await db.budget.update({
             where: { id: budget.id },
             data: { lastAlertSent: new Date() },
           });
+        } else {
+          console.log(
+            `[Budget Alert] Threshold not met (${percentageUsed.toFixed(2)}% < 50%)`
+          );
         }
       });
     }
@@ -362,3 +373,14 @@ async function getMonthlyStats(userId, month) {
     }
   );
 }
+
+// Export Inngest handler for Next.js
+export const { GET, POST, PUT } = serve({
+  client: inngest,
+  functions: [
+    processRecurringTransaction,
+    triggerRecurringTransactions,
+    generateMonthlyReports,
+    checkBudgetAlerts,
+  ],
+});
