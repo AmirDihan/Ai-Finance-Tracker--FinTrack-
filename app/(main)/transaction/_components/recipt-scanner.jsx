@@ -30,9 +30,12 @@ export function ReceiptScanner({ onScanComplete }) {
       onScanComplete(scannedData);
       toast.success("Receipt scanned successfully");
     }
-  }, [scanReceiptLoading, scannedData]);
+  }, [scanReceiptLoading, scannedData, onScanComplete]);
 
   return (
+
+    <div> </div>
+    /*
     <div className="flex items-center gap-4">
       <input
         type="file"
@@ -52,6 +55,8 @@ export function ReceiptScanner({ onScanComplete }) {
         onClick={() => fileInputRef.current?.click()}
         disabled={scanReceiptLoading}
       >
+        
+        
         {scanReceiptLoading ? (
           <>
             <Loader2 className="mr-2 animate-spin" />
@@ -65,5 +70,7 @@ export function ReceiptScanner({ onScanComplete }) {
         )}
       </Button>
     </div>
+
+    */
   );
 }
