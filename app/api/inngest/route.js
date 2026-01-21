@@ -1,4 +1,4 @@
-import { inngest } from "./client";
+import { inngest } from "./client.js";
 import { db } from "@/lib/prisma";
 import EmailTemplate from "@/emails/template";
 import { sendEmail } from "@/actions/send-email";

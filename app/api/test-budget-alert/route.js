@@ -2,7 +2,7 @@ import { sendEmail } from "@/actions/send-email";
 import EmailTemplate from "@/emails/template";
 import { db } from "@/lib/prisma";
 
-export async function GET(req) {
+export async function GET() {
   try {
     // Get the first budget with user
     const budget = await db.budget.findFirst({
